@@ -2,8 +2,7 @@
   "functions": {
     "api/**/*.ts": {
       "includeFiles": [
-        "lib/**",
-        "prisma/**"
+        "prisma/schema.prisma"
       ]
     }
   }

@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import prisma from '../lib/prisma';
+import prisma from './prisma';
 import { ProjectCategory } from '../types';
 
 export const runtime = 'nodejs';
