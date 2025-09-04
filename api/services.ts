@@ -3,6 +3,8 @@ import prisma from '../lib/prisma';
 
 export const runtime = 'nodejs';
 
+// Force rebuild to clear cache
+
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse,
