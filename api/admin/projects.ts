@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import prisma from '../../lib/prisma.js';
-import { verifyToken } from '../../lib/auth.js';
+import prisma from '@/lib/prisma';
+import { verifyToken } from '@/lib/auth';
+
+export const runtime = 'nodejs';
 
 export default async function handler(
   req: VercelRequest,
