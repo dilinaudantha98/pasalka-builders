@@ -1,61 +1,95 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
 import prisma from '../../lib/prisma';
 import { verifyToken } from '../../lib/auth';
 
 export const runtime = 'nodejs';
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse,
-) {
-  const authHeader = req.headers.authorization;
+const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
+  const authHeader = event.headers.authorization;
   if (!authHeader) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ error: 'Unauthorized' }),
+    };
   }
 
   const token = authHeader.split(' ')[1];
   const user = verifyToken(token);
   if (!user) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ error: 'Unauthorized' }),
+    };
   }
 
-  switch (req.method) {
+  if (!event.body) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: 'Request body is missing' }),
+    };
+  }
+
+  switch (event.httpMethod) {
     case 'GET':
       try {
         const projects = await prisma.project.findMany();
-        res.status(200).json(projects);
+        return {
+          statusCode: 200,
+          body: JSON.stringify(projects),
+        };
       } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch projects' });
+        return {
+          statusCode: 500,
+          body: JSON.stringify({ error: 'Failed to fetch projects' }),
+        };
       }
-      break;
     case 'POST':
       try {
-        const project = await prisma.project.create({ data: req.body });
-        res.status(201).json(project);
+        const project = await prisma.project.create({ data: JSON.parse(event.body) });
+        return {
+          statusCode: 201,
+          body: JSON.stringify(project),
+        };
       } catch (error) {
-        res.status(500).json({ error: 'Failed to create project' });
+        return {
+          statusCode: 500,
+          body: JSON.stringify({ error: 'Failed to create project' }),
+        };
       }
-      break;
     case 'PUT':
       try {
-        const { id, ...data } = req.body;
+        const { id, ...data } = JSON.parse(event.body);
         const project = await prisma.project.update({ where: { id }, data });
-        res.status(200).json(project);
+        return {
+          statusCode: 200,
+          body: JSON.stringify(project),
+        };
       } catch (error) {
-        res.status(500).json({ error: 'Failed to update project' });
+        return {
+          statusCode: 500,
+          body: JSON.stringify({ error: 'Failed to update project' }),
+        };
       }
-      break;
     case 'DELETE':
       try {
-        const { id } = req.body;
+        const { id } = JSON.parse(event.body);
         await prisma.project.delete({ where: { id } });
-        res.status(204).end();
+        return {
+          statusCode: 204,
+          body: '',
+        };
       } catch (error) {
-        res.status(500).json({ error: 'Failed to delete project' });
+        return {
+          statusCode: 500,
+          body: JSON.stringify({ error: 'Failed to delete project' }),
+        };
       }
-      break;
     default:
-      res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
-      res.status(405).end(`Method ${req.method} Not Allowed`);
+      return {
+        statusCode: 405,
+        body: JSON.stringify({ error: `Method ${event.httpMethod} Not Allowed` }),
+      };
   }
-}
+};
+
+export { handler };

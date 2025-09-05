@@ -1,24 +1,31 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
 import prisma from '../lib/prisma';
 
 export const runtime = 'nodejs';
 
 // Force rebuild to clear cache
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse,
-) {
-  if (req.method === 'GET') {
+const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
+  if (event.httpMethod === 'GET') {
     try {
       const services = await prisma.service.findMany();
-      res.status(200).json(services);
+      return {
+        statusCode: 200,
+        body: JSON.stringify(services),
+      };
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: 'Unable to fetch services' });
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: 'Unable to fetch services' }),
+      };
     }
   } else {
-    res.setHeader('Allow', ['GET']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: `Method ${event.httpMethod} Not Allowed` }),
+    };
   }
-}
+};
+
+export { handler };

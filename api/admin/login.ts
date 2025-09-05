@@ -1,4 +1,4 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
 import prisma from '../../lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -7,35 +7,54 @@ export const runtime = 'nodejs';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-default-secret';
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse,
-) {
-  if (req.method === 'POST') {
-    const { username, password } = req.body;
+const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
+  if (event.httpMethod === 'POST') {
+    if (!event.body) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'Request body is missing' }),
+      };
+    }
+    const { username, password } = JSON.parse(event.body);
 
     if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password are required' });
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'Username and password are required' }),
+      };
     }
 
     try {
       const admin = await prisma.admin.findUnique({ where: { username } });
 
       if (!admin || !bcrypt.compareSync(password, admin.password)) {
-        return res.status(401).json({ error: 'Invalid credentials' });
+        return {
+          statusCode: 401,
+          body: JSON.stringify({ error: 'Invalid credentials' }),
+        };
       }
 
       const token = jwt.sign({ id: admin.id, username: admin.username }, JWT_SECRET, {
         expiresIn: '1h',
       });
 
-      res.status(200).json({ token });
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ token }),
+      };
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: 'An error occurred during login' });
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: 'An error occurred during login' }),
+      };
     }
   } else {
-    res.setHeader('Allow', ['POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: `Method ${event.httpMethod} Not Allowed` }),
+    };
   }
-}
+};
+
+export { handler };
