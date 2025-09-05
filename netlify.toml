@@ -1,0 +1,15 @@
+# Netlify configuration file
+
+[build]
+  # This command is run to build the site
+  command = "npm run build"
+  
+  # The directory that contains the built site
+  publish = "dist"
+
+[functions]
+  # The directory that contains the serverless functions
+  directory = "api"
+  
+  # Include the Prisma schema and the shared lib code with the functions
+  included_files = ["lib/**", "prisma/**"]
